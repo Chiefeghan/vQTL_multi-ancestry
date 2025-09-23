@@ -1,1 +1,1 @@
-# Plasma-protein-variance-across-ancestries
+# Plasma protein variance across ancestries
