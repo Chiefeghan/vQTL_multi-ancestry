@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Paths
+protein_chromosome_file="/rds/project/rds-6Vq3DCqzTlE/external_data_transfers/uganda_genome_resource/vqtl/UKB_SEX/protein_chrom_test.txt"
+main_output_dir="/rds/user/cb2253/hpc-work/plink_file/AFR/vQTL_3000_AFR"
+osca_path="/home/cb2253/chief/chief_apps/osca-0.46.1-linux-x86_64/osca-0.46.1"
+male_ids="/rds/user/cb2253/hpc-work/plink_file/AFR/afr.male.txt"
+female_ids="/rds/user/cb2253/hpc-work/plink_file/AFR/afr.female.txt"
+final_output_base="/rds/project/rds-6Vq3DCqzTlE/external_data_transfers/uganda_genome_resource/vqtl/UKB_SEX"
+
+# Check if input file exists
+if [ ! -f "$protein_chromosome_file" ]; then
+    echo "Error: File $protein_chromosome_file not found"
+    exit 1
+fi
+
+# Start reading the protein-chromosome pairs
+while read -r raw_protein raw_chr; do
+    # Skip header or malformed lines
+    if [[ "$raw_protein" == "protein" || -z "$raw_protein" || -z "$raw_chr" ]]; then
+        continue
+    fi
+
+    # Trim any trailing whitespace
+    protein_name=$(echo "$raw_protein" | xargs)
+    chromosome=$(echo "$raw_chr" | xargs)
+
+    for sex in male female; do
+        if [ "$sex" == "male" ]; then
+            keep_file="$male_ids"
+            sex_suffix=".male"
+        else
+            keep_file="$female_ids"
+            sex_suffix=".female"
+        fi
+
+        echo "Submitting OSCA job for $protein_name on $chromosome ($sex)..."
+
+        output_dir="${final_output_base}/${sex}/${protein_name}"
+        mkdir -p "$output_dir"
+
+        input_file="/rds/user/cb2253/hpc-work/plink_file/AFR/${chromosome}_imputed_AFR_filtered_v3"
+        pheno_file="${main_output_dir}/${protein_name}.txt"
+
+        # Check that the phenotype file exists
+        if [ ! -f "$pheno_file" ]; then
+            echo "Warning: Phenotype file $pheno_file not found. Skipping $protein_name."
+            continue
+        fi
+
+        # Construct OSCA command
+        "$osca_path" \
+            --vqtl \
+            --bfile "$input_file" \
+            --pheno "$pheno_file" \
+            --vqtl-mtd 2 \
+            --out "${output_dir}/${chromosome}_${protein_name}${sex_suffix}_output" \
+            --keep "$keep_file"
+
+        echo "Finished OSCA for $protein_name on $chromosome ($sex)"
+    done
+done < "$protein_chromosome_file"
