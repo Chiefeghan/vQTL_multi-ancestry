@@ -1,1 +1,1 @@
-# Plasma protein variance across ancestries
+# Anlysis of plasma protein variances across diverse ancestries
