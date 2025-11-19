@@ -1,37 +1,37 @@
 library(data.table)
 library(MendelianRandomization)
 
-# Define your directory paths
+###paths
 #/Users/cb2253/OneDrive - University of Cambridge/vQTL_analysis/MVMR_EUR/summary_data_main_vqtl/MVMV_EUR_TXT/test/
 data_dir <- "/rds/user/cb2253/hpc-work/plink_file/MVMR/MVMR_EUR/MVMR_LDstore//test/"
 #/Users/cb2253/OneDrive - University of Cambridge/vQTL_analysis/MVMR_EUR/summary_data_main_vqtl/MVMV_EUR_TXT/LDmatrices/first_set
-# Get list of df_* files in the working directory
+###list of df_* files in the working directory
 df_files <- list.files(data_dir, pattern = "^df_.*\\.txt$", full.names = TRUE)
 
-# Initialize an empty list to store the results for all proteins
+#Initialize an empty list to store the results for all proteins
 all_results <- list()
 
-# Loop through each df_* file
+###Loop through each df_* file
 for (df_file in df_files) {
   
-  # Extract the protein name from the df_* file name
+  ##extract the protein name from the df_* file name
   file_name <- basename(df_file)
   protein_name <- sub("^df_(.*)\\.txt$", "\\1", file_name)
   
-  # Look for any .ld file with a matching protein name and a chromosome prefix (chr1_ to chr22_)
+  #find any .ld file with a matching protein name and chromosome prefix (chr1_ to chr22_)
   ld_file_pattern <- paste0("chr[1-9][0-9]?_", protein_name, "\\.ld$")
   ld_file <- list.files(data_dir, pattern = ld_file_pattern, full.names = TRUE)
   
-  # If no corresponding .ld file is found, skip to the next protein
+  # skip to the next protein if no corresponding .ld file is found,
   if (length(ld_file) == 0) {
     message(paste("LD file not found for:", protein_name))
     next
   }
   
-  # Read the df_ file
+  ####Read the df_ file
   df1 <- fread(df_file)
   
-  # Ensure the .ld file exists and is readable
+  #Ensure the .ld file exists and can be read
   ld_file_path <- ld_file[1]
   if (file.exists(ld_file_path)) {
     r.mat <- fread(ld_file_path)
@@ -41,7 +41,7 @@ for (df_file in df_files) {
     next
   }
   
-  # Prepare input data for MR analysis
+  #prep input data for MR analysis
   input_dat <- mr_mvinput(
     bx = cbind(df1$beta.exposure, df1$beta.exposure.vqtl),
     bxse = cbind(df1$se.exposure, df1$se.exposure.vqtl),
@@ -56,7 +56,7 @@ for (df_file in df_files) {
   nx <- c(nx.main, nx.vqtl)
   ny <- 296525
   
-  # Perform MR analysis
+  #Perform MR analysis prop variance 99.9
   res <- mr_mvpcgmm(input_dat, nx = nx, ny = ny, thres = 0.999)
   
   # Capture the results
